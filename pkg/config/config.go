@@ -186,6 +186,10 @@ func NewConfig(confString string, c *cli.Context) (*Config, error) {
 			Kind:         "random",
 			SysloadLimit: 0.7,
 		},
+		Analytics: AnalyticsConfig{
+			Address:      "localhost:7772",
+			AnalyticsKey: "test_access_key",
+		},
 		Keys: map[string]string{},
 	}
 	if confString != "" {
