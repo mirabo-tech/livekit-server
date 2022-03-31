@@ -23,18 +23,7 @@ var (
 	ErrPermissionDenied = errors.New("permissions denied")
 )
 
-// authentication middleware
-type APIKeyAuthMiddleware struct {
-	provider auth.KeyProvider
-}
-
-func NewAPIKeyAuthMiddleware(provider auth.KeyProvider) *APIKeyAuthMiddleware {
-	return &APIKeyAuthMiddleware{
-		provider: provider,
-	}
-}
-
-func (m *APIKeyAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func extractBearToken(w http.ResponseWriter, r *http.Request) (string, error) {
 	if r.URL != nil && r.URL.Path == "/rtc/validate" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 	}
@@ -45,7 +34,7 @@ func (m *APIKeyAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request,
 	if authHeader != "" {
 		if !strings.HasPrefix(authHeader, bearerPrefix) {
 			handleError(w, http.StatusUnauthorized, "invalid authorization header. Must start with "+bearerPrefix)
-			return
+			return "", errors.New("invalid authorization header. ")
 		}
 
 		authToken = authHeader[len(bearerPrefix):]
@@ -54,31 +43,7 @@ func (m *APIKeyAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request,
 		authToken = r.FormValue(accessTokenParam)
 	}
 
-	if authToken != "" {
-		v, err := auth.ParseAPIToken(authToken)
-		if err != nil {
-			handleError(w, http.StatusUnauthorized, "invalid authorization token")
-			return
-		}
-
-		secret := m.provider.GetSecret(v.APIKey())
-		if secret == "" {
-			handleError(w, http.StatusUnauthorized, "invalid API key")
-			return
-		}
-
-		grants, err := v.Verify(secret)
-		if err != nil {
-			handleError(w, http.StatusUnauthorized, "invalid token: "+authToken+", error: "+err.Error())
-			return
-		}
-
-		// set grants in context
-		ctx := r.Context()
-		r = r.WithContext(context.WithValue(ctx, grantsKey, grants))
-	}
-
-	next.ServeHTTP(w, r)
+	return authToken, nil
 }
 
 func GetGrants(ctx context.Context) *auth.ClaimGrants {

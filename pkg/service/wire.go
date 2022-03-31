@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/Nerzal/gocloak/v11"
 	"os"
 
 	"github.com/go-redis/redis/v8"
@@ -30,6 +31,7 @@ func InitializeServer(conf *config.Config, currentNode routing.LocalNode) (*Live
 		createStore,
 		wire.Bind(new(RORoomStore), new(RoomStore)),
 		createKeyProvider,
+		createKeycloakClient,
 		createWebhookNotifier,
 		routing.CreateRouter,
 		wire.Bind(new(routing.MessageRouter), new(routing.Router)),
@@ -55,6 +57,23 @@ func InitializeRouter(conf *config.Config, currentNode routing.LocalNode) (routi
 	)
 
 	return nil, nil
+}
+
+func createKeycloakClient(conf *config.Config) (gocloak.GoCloak, error) {
+	keycloakConf := conf.Keycloak
+	if keycloakConf.ClientID == nil ||
+		keycloakConf.ClientSecret == nil ||
+		keycloakConf.Hostname == nil ||
+		keycloakConf.Realm == nil {
+		return nil, errors.New("missing keycloak config")
+	}
+	ctx := context.Background()
+	client := gocloak.NewClient(keycloakConf.Hostname)
+	_, err := client.LoginClient(ctx, keycloakConf.ClientID, keycloakConf.ClientSecret, keycloakConf.Realm)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func createKeyProvider(conf *config.Config) (auth.KeyProvider, error) {

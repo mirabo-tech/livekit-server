@@ -42,7 +42,15 @@ type Config struct {
 	Logging  LoggingConfig `yaml:"logging,omitempty"`
 	Limit    LimitConfig   `yaml:"limit,omitempty"`
 
-	Development bool `yaml:"development,omitempty"`
+	Development bool           `yaml:"development,omitempty"`
+	Keycloak    KeycloakConfig `yaml:"keycloak"`
+}
+
+type KeycloakConfig struct {
+	Hostname     string `yaml:"hostname"`
+	Realm        string `yaml:"realm"`
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
 }
 
 type RTCConfig struct {
@@ -219,7 +227,8 @@ func NewConfig(confString string, c *cli.Context) (*Config, error) {
 			Kind:         "random",
 			SysloadLimit: 0.7,
 		},
-		Keys: map[string]string{},
+		Keys:     map[string]string{},
+		Keycloak: KeycloakConfig{},
 	}
 	if confString != "" {
 		if err := yaml.Unmarshal([]byte(confString), conf); err != nil {

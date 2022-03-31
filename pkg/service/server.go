@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Nerzal/gocloak/v11"
 	"net"
 	"net/http"
 	"runtime/pprof"
@@ -44,6 +45,7 @@ func NewLivekitServer(conf *config.Config,
 	recService *RecordingService,
 	rtcService *RTCService,
 	keyProvider auth.KeyProvider,
+	keycloak gocloak.GoCloak,
 	router routing.Router,
 	roomManager *RoomManager,
 	turnServer *turn.Server,
@@ -74,6 +76,10 @@ func NewLivekitServer(conf *config.Config,
 	}
 	if keyProvider != nil {
 		middlewares = append(middlewares, NewAPIKeyAuthMiddleware(keyProvider))
+	}
+
+	if keycloak != nil {
+		middlewares = append(middlewares, NewKeycloakAuthMiddleware(keycloak))
 	}
 
 	roomServer := livekit.NewRoomServiceServer(roomService)
